@@ -15,7 +15,7 @@ git clone https://github.com/Manas02/dili-pip.git
 cd dili-pip/
 ```
 
-### Conda Environment [Optional | Recommeneded]
+### Conda Environment [Optional]
 
 Install `dilipred` conda environment using the following command.
 
