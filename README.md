@@ -46,7 +46,7 @@ Output is stored in a directory with the name in the format `DILIPRedictor_dd-mm
 
 ![](dilipred_run.png)
 
-### Running `DILIPredictor` as Library
+### Running `DILIPRedictor` as Library
 
 ```py
 from dilipred import DILIPRedictor
