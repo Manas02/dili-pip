@@ -403,11 +403,11 @@ def main():
     )
     args = parser.parse_args(args=None if sys.argv[1:] else ["--help"])
 
-    dili_predictor = DILIPRedictor(args.smiles)
+    dili_predictor = DILIPRedictor()
     print(BANNER)
     print(CITE)
 
-    result = dili_predictor.predict()
+    result = dili_predictor.predict(args.smiles)
     filename = f"DILIPRedictor_{formatted_time}_{formatted_date}.csv"
     logger.info(f"Saving Results in {filename}")
     result.to_csv(filename, index=False)

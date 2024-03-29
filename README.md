@@ -1,4 +1,4 @@
-# `dilipred`
+# DILIPRedictor
 
 DILI Predictor is an open-source app framework built specifically for human drug-induced liver injury (DILI)
 
