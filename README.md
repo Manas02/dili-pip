@@ -8,36 +8,23 @@ Select from the sidebar to predict DILI for a single molecule! For bulk jobs, or
 
 ## Installation
 
-### Clone this repo
+### Install using `PyPI`
 
 ```sh
-git clone https://github.com/Manas02/dili-pip.git
-cd dili-pip/
+pip install dilipred
 ```
 
-### Conda Environment [Optional]
-
-Install `dilipred` conda environment using the following command.
+### Install using `poetry`
 
 ```sh
-conda create --name dilipred
-conda activate dilipred
+poetry add dilipred
 ```
-
-### PIP Install package
-
-```sh
-pip install .
-```
-
-> Note: Use `pip install -e .` to make an editable installation.
 
 ## Usage
 
 ### Running `DILIPredictor` as CLI
 
 #### Help
-
 Simply run `dili` or `dili -h` or `dili --help` to get the helper.
 ![](dilipred_help.png)
 
