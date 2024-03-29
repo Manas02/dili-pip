@@ -1,7 +1,7 @@
 from dilipred import DILIPRedictor
 
 if __name__ == '__main__':
+    dp = DILIPRedictor()
     smiles = "CCCCCCCO"
-    dp = DILIPRedictor(smiles)
-    result = dp.predict()
+    result = dp.predict(smiles)
     assert result is not None

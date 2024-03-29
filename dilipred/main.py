@@ -279,13 +279,9 @@ def predict_DILI(data):
 
 
 class DILIPRedictor:
-    def __init__(self, smiles) -> None:
-        self.smiles = smiles
-        assert standardized_smiles(self.smiles) != "Cannot_do"
-
-    def predict(self):
+    def predict(self, smiles):
         logger.debug("Standardizing SMILES")
-        smiles_r = standardized_smiles(self.smiles)
+        smiles_r = standardized_smiles(smiles)
         if smiles_r == "Cannot_do":
             raise Exception("InvalidSMILESError")
         test = {"smiles_r": [smiles_r]}
@@ -386,7 +382,7 @@ class DILIPRedictor:
             ]
         ]
         SHAP = pd.concat([preds_DILI, SHAP]).reset_index(drop=True)
-        SHAP["smiles"] = self.smiles
+        SHAP["smiles"] = smiles
         SHAP["smiles_r"] = smiles_r
 
         return SHAP

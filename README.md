@@ -39,10 +39,12 @@ pip install .
 #### Help
 
 Simply run `dili` or `dili -h` or `dili --help` to get the helper.
-![]()
+![](dilipred_help.png)
 
 #### Inference given SMILES strings
 Output is stored in a directory with the name in the format `DILIPRedictor_dd-mm-yyyy-hh-mm-ss.csv`
+
+![](dilipred_run.png)
 
 ### Running `DILIPredictor` as Library
 
@@ -51,7 +53,16 @@ from dilipred import DILIPRedictor
 
 
 if __name__ == '__main__':
+    dp = DILIPRedictor()
     smiles = "CCCCCCCO"
-    dp = DILIPRedictor(smiles)
-    result = dp.predict()
+    result = dp.predict(smiles)
 ```
+
+## Cite
+
+If you use DILIPred in your work, please cite:
+
+> Improved Early Detection of Drug-Induced Liver Injury by Integrating Predicted in vivo and in vitro Data;
+> Srijit Seal, Dominic P. Williams, Layla Hosseini-Gerami, Ola Spjuth, Andreas Bender
+> bioRxiv 2024.01.10.575128; doi: https://doi.org/10.1101/2024.01.10.575128
+
