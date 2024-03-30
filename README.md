@@ -10,14 +10,8 @@ Select from the sidebar to predict DILI for a single molecule! For bulk jobs, or
 
 ### Install using `PyPI`
 
-```sh
+```sh 
 pip install dilipred
-```
-
-### Install using `poetry`
-
-```sh
-poetry add dilipred
 ```
 
 ## Usage

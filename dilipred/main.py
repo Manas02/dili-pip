@@ -399,6 +399,7 @@ def main():
         "-smi",
         "--smi",
         "-smiles",
+	    type=str,
         help="Input SMILES string to predict properties",
     )
     args = parser.parse_args(args=None if sys.argv[1:] else ["--help"])
