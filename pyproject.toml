@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dilipred"
-version = "0.1.4"
+version = "0.1.5"
 description = "DILIPRedictor is an open-source app framework built specifically for human drug-induced liver injury"
 authors = ["Manas Mahale <manas.mahale@bcp.edu.in>"]
 readme = "README.md"
