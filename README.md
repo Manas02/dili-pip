@@ -30,13 +30,13 @@ poetry build
 
 #### Help
 Simply run `dili` or `dili -h` or `dili --help` to get the helper.
-![](dilipred_help.png)
+![](https://github.com/Manas02/dili-pip/raw/main/dilipred_help.png?raw=True)
 
 #### Inference given SMILES strings
 Output is stored in a directory with the name in the format `DILIPRedictor_dd-mm-yyyy-hh-mm-ss.csv`
 Use `-d` or `--debug` to get more info.
 
-![](dilipred_run.png)
+![](https://github.com/Manas02/dili-pip/raw/main/dilipred_run.png?raw=True)
 
 ### Running `DILIPRedictor` as Library
 
