@@ -1,45 +1,144 @@
-import os
-import sys
-import pickle
-import warnings
+#!/usr/bin/env python
+# coding: utf-8
+
 import argparse
-from argparse import RawTextHelpFormatter
-from datetime import datetime
+import datetime
+import os
+import pickle
+import sys
+from collections import Counter
+import warnings
+
+import numpy as np
+import pandas as pd
+import shap
+from dimorphite_dl.dimorphite_dl import DimorphiteDL
+from loguru import logger
+from mordred import Calculator, descriptors
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, MolStandardize
+from rdkit.Chem.MolStandardize import Standardizer, rdMolStandardize
+
+from dilipred.constants import (
+    ABSTRACT,
+    ASSAY_TYPE,
+    BANNER,
+    CITE,
+    DESCS,
+    LIV_DATA,
+    SOURCE,
+)
+
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 
-import shap
-import numpy as np
-import pandas as pd
-from loguru import logger
-from rdkit import Chem
-from rdkit.Chem import AllChem, Descriptors
-from mordred import Calculator, descriptors
-from molvs import standardize_smiles
-
-from dilipred.constants import (
-    ASSAY_TYPE,
-    DESCS,
-    LIV_DATA,
-    SOURCE,
-    BANNER,
-    ABSTRACT,
-    CITE,
-)
+logger.remove()
+logger.add(sys.stderr, level="CRITICAL")
 
 
-now = datetime.now()
-formatted_date = now.strftime("%d-%m-%Y")
-formatted_time = now.strftime("%H-%M-%S")
+def standardized_smiles(smiles):
+    standardizer = Standardizer()
 
-INFO = pd.DataFrame({"name": LIV_DATA, "source": SOURCE, "assaytype": ASSAY_TYPE})
+    # Read SMILES and convert it to RDKit mol object
+    mol = Chem.MolFromSmiles(smiles)
 
-
-def standardized_smiles(value):
     try:
-        return standardize_smiles(value)
+        smiles_clean_counter = Counter()
+        mol_dict = {}
+        is_finalize = False
+
+        for _ in range(5):
+
+            # This solved phosphate oxidation in most cases but introduces a problem for some compounds: eg. geldanamycin where the stable strcutre is returned
+            inchi_standardised = Chem.MolToInchi(mol)
+            mol = Chem.MolFromInchi(inchi_standardised)
+
+            # removeHs, disconnect metal atoms, normalize the molecule, reionize the molecule
+            mol = rdMolStandardize.Cleanup(mol)
+            # if many fragments, get the "parent" (the actual mol we are interested in)
+            mol = rdMolStandardize.FragmentParent(mol)
+            # try to neutralize molecule
+            uncharger = (
+                rdMolStandardize.Uncharger()
+            )  # annoying, but necessary as no convenience method exists
+
+            mol = uncharger.uncharge(mol)  # standardize molecules using MolVS and RDKit
+            mol = standardizer.charge_parent(mol)
+            mol = standardizer.isotope_parent(mol)
+            mol = standardizer.stereo_parent(mol)
+
+            # Normalize tautomers
+            # Method 1
+            normalizer = MolStandardize.tautomer.TautomerCanonicalizer()
+            mol = normalizer.canonicalize(mol)
+
+            # Method 2
+            te = rdMolStandardize.TautomerEnumerator()  # idem
+            mol = te.Canonicalize(mol)
+
+            # Method 3
+            mol = standardizer.tautomer_parent(mol)
+
+            # Final Rules
+            mol = standardizer.standardize(mol)
+            mol_standardized = mol
+
+            # convert mol object back to SMILES
+            smiles_standardized = Chem.MolToSmiles(mol_standardized)
+
+            if smiles == smiles_standardized:
+                is_finalize = True
+                break
+
+            smiles_clean_counter[smiles_standardized] += 1
+            if smiles_standardized not in mol_dict:
+                mol_dict[smiles_standardized] = mol_standardized
+
+            smiles = smiles_standardized
+            mol = Chem.MolFromSmiles(smiles)
+
+        if not is_finalize:
+            # If the standardization process is not finalized, we choose the most common SMILES from the counter
+            smiles_standardized = smiles_clean_counter.most_common()[0][0]
+            # ... and the corresponding mol object
+            # mol_standardized = mol_dict[smiles_standardized]
+
+        return smiles_standardized
+
     except:
+
+        return "Cannot_do"
+
+
+def protonate_smiles(smiles):
+
+    dimorphite = DimorphiteDL(min_ph=7.0, max_ph=7.0, pka_precision=0)
+    protonated_smiles = dimorphite.protonate(smiles)
+
+    # print("protonated_smiles")
+
+    if len(protonated_smiles) > 0:
+        protonated_smiles = protonated_smiles[0]
+
+    return protonated_smiles
+
+
+def smiles_to_inchikey(smiles):
+
+    try:
+
+        # Convert SMILES to a molecule object
+        mol = Chem.MolFromSmiles(smiles)
+        # Convert the molecule object to an InChI string
+        inchi_string = Chem.MolToInchi(mol)
+        # Convert the InChI string to an InChIKey
+        inchi_key = Chem.inchi.InchiToInchiKey(inchi_string)
+
+        return inchi_key
+
+    except:
+
         return "Cannot_do"
 
 
@@ -72,7 +171,7 @@ def get_num_charged_atoms_pos(mol):
     Chem.rdPartialCharges.ComputeGasteigerCharges(mol_h)
 
     positive = 0
-    negative = 0
+    # negative = 0
 
     for atom in mol_h.GetAtoms():
         if float(atom.GetProp("_GasteigerCharge")) >= 0:
@@ -109,6 +208,7 @@ def get_num_stereocenters(mol):
 
 def calc_descriptors(dataframe):
     mols = dataframe.smiles_r.apply(Chem.MolFromSmiles)
+    # mols_fps=[AllChem.GetMorganFingerprintAsBitVect(x,2) for x in mols]
     descr = []
     for m in mols:
         descr.append(
@@ -134,11 +234,18 @@ def calc_descriptors(dataframe):
     return descr
 
 
+descs = DESCS
+
+
 def calc_all_fp_desc(data):
+
     calc = Calculator(descriptors, ignore_3D=True)
+    logger.debug(f"Calculated {len(calc.descriptors)} Descriptors")
     Ser_Mol = data["smiles_r"].apply(Chem.MolFromSmiles)
+    # as pandas
     Mordred_table = calc.pandas(Ser_Mol)
     Mordred_table = Mordred_table.astype("float")
+    # Mordred_table['smiles_r'] = model_tox_data['smiles_r']
 
     MACCSfingerprint_array = np.stack(data["smiles_r"].apply(MACCSKeysFingerprint))
     MACCS_collection = []
@@ -159,9 +266,8 @@ def calc_all_fp_desc(data):
     )
 
     a = calc_descriptors(data)
-    descdf = pd.DataFrame(a, columns=DESCS)
+    descdf = pd.DataFrame(a, columns=descs)
     descdf_approved = descdf.reset_index(drop=True)
-    descdf_approved
 
     tox_model_data = pd.concat(
         [
@@ -173,19 +279,19 @@ def calc_all_fp_desc(data):
         ],
         axis=1,
     )
-    tox_model_data
 
     return tox_model_data
 
 
+liv_data = LIV_DATA
+
+
 def predict_individual_liv_data(data_dummy, features, endpoint):  # predict animal data
     with open(
-        os.path.dirname(os.path.abspath(__file__))
-        + f"/models/bestlivmodel_{endpoint}_model.sav",
-        "rb",
-    ) as f:
+        os.path.dirname(os.path.abspath(__file__)) + 
+        f"/models/bestlivmodel_{endpoint}_model.sav", "rb") as f:
         loaded_rf = pickle.load(f)
-
+        
     X = data_dummy[features]
     X = X.values
     y_proba = loaded_rf.predict_proba(X)[:, 1]
@@ -195,10 +301,8 @@ def predict_individual_liv_data(data_dummy, features, endpoint):  # predict anim
 
 def predict_individual_cmax_data(data_dummy, features, endpoint):  # predict animal data
     with open(
-        os.path.dirname(os.path.abspath(__file__))
-        + f"/models/bestlivmodel_{endpoint}_model.sav",
-        "rb",
-    ) as f:
+        os.path.dirname(os.path.abspath(__file__)) + 
+        f"/models/bestlivmodel_{endpoint}_model.sav", "rb") as f:
         regressor = pickle.load(f)
 
     X = data_dummy[features]
@@ -211,18 +315,17 @@ def predict_individual_cmax_data(data_dummy, features, endpoint):  # predict ani
 
 def predict_liv_all(data):
     # Read columns needed for rat data
-    file = open(
-        os.path.dirname(os.path.abspath(__file__))
-        + "/models/features_morgan_mordred_maccs_physc.txt",
-        "r",
-    )
-    file_lines = file.read()
+
+    with open(os.path.dirname(os.path.abspath(__file__)) + 
+              f"/features/features_morgan_mordred_maccs_physc.txt", "r") as file:
+        file_lines = file.read()
     features = file_lines.split("\n")
     features = features[:-1]
 
     data_dummy = data
 
-    for endpoint in LIV_DATA:
+    for endpoint in liv_data:
+        # print(endpoint)
         y_proba = predict_individual_liv_data(data_dummy, features, endpoint)
         data[endpoint] = y_proba
 
@@ -236,15 +339,13 @@ def predict_liv_all(data):
     return data
 
 
-def predict_DILI(data):
+def predict_DILI(data):  # log human_VDss_L_kg model
 
     # Read columns needed for rat data
-    file = open(
-        os.path.dirname(os.path.abspath(__file__))
-        + f"/models/features_morgan_mordred_maccs_physc.txt",
-        "r",
-    )
-    file_lines = file.read()
+    with open (
+        os.path.dirname(os.path.abspath(__file__)) + 
+        f"/features/features_morgan_mordred_maccs_physc.txt", "r") as file:
+        file_lines = file.read()
     features = file_lines.split("\n")
     features = features[:-1]
 
@@ -254,55 +355,80 @@ def predict_DILI(data):
             "median pMolar unbound plasma concentration",
             "median pMolar total plasma concentration",
         ]
-        + list(LIV_DATA)
+        + list(liv_data)
     )
+
     with open(
-        os.path.dirname(os.path.abspath(__file__)) + "/models/final_dili_model.sav",
-        "rb",
+        os.path.dirname(os.path.abspath(__file__)) + 
+        "/models/final_dili_model.sav", "rb"
     ) as f:
         loaded_rf = pickle.load(f)
 
+    # Note this mode was trained on all data before releasing (not just ncv data)
     X = data[features]
     y_proba = loaded_rf.predict_proba(X)[:, 1]
     best_thresh = 0.612911
+    logger.debug("Best Threshold=%f" % (best_thresh))
+
     y_pred = [1 if y_proba > best_thresh else 0]
 
     explainer = shap.TreeExplainer(loaded_rf)
     shap_values = explainer.shap_values(X)
 
+    # shap.force_plot(
+    #     explainer.expected_value[1], shap_values[1], X.iloc[0], matplotlib=True
+    # )
+
     flat_shaplist = [item for sublist in shap_values[1] for item in sublist]
 
     interpret = pd.DataFrame()
     interpret["name"] = features
-    interpret["SHAP"] = flat_shaplist
-    return (interpret, y_proba, y_pred)
+    interpret["SHAP"] = flat_shaplist  # print(flat_shaplist)
+    # plt.show()
+    # Explaining the 4th instance
 
+    return (interpret, y_proba, y_pred)
 
 class DILIPRedictor:
     def predict(self, smiles):
-        logger.debug("Standardizing SMILES")
+         
+        desc = pd.read_csv(os.path.dirname(os.path.abspath(__file__)) + 
+                           "/features/all_features_desc.csv", encoding="windows-1252")
+        source = SOURCE
+        assaytype = ASSAY_TYPE
+
+        info = pd.DataFrame(
+            {"name": liv_data, "source": source, "assaytype": assaytype}
+        )
+        SHAP = pd.DataFrame(
+            columns=[
+                "name",
+                "source",
+                "assaytype",
+                "SHAP",
+                "description",
+                "value",
+                "pred",
+            ]
+        )
+
+        # predict
+        y_pred = ""
+        y_proba = ""
+        smiles_r = ""
+
         smiles_r = standardized_smiles(smiles)
-        if smiles_r == "Cannot_do":
-            raise Exception("InvalidSMILESError")
         test = {"smiles_r": [smiles_r]}
         test = pd.DataFrame(test)
 
-        desc = pd.read_csv(
-            os.path.dirname(os.path.abspath(__file__))
-            + "/models/all_features_desc.csv",
-            encoding="windows-1252",
-        )
+        molecule = Chem.MolFromSmiles(smiles_r)
 
-        logger.debug("Calculating Descriptors")
         test_mfp_Mordred = calc_all_fp_desc(test)
-
-        logger.debug("Loading Models")
         test_mfp_Mordred_liv = predict_liv_all(test_mfp_Mordred)
         test_mfp_Mordred_liv_values = test_mfp_Mordred_liv.T.reset_index().rename(
             columns={"index": "name", 0: "value"}
         )
 
-        logger.debug("Models Predicting")
         interpret, y_proba, y_pred = predict_DILI(test_mfp_Mordred_liv)
         interpret = pd.merge(
             interpret, desc, right_on="name", left_on="name", how="outer"
@@ -316,30 +442,82 @@ class DILIPRedictor:
         )
 
         if y_pred[0] == 1:
-            logger.critical("The compound is predicted DILI-Positive")
+            logger.debug("The compound is predicted **_DILI-Positive_**")
         if y_pred[0] == 0:
-            logger.critical("The compound is predicted DILI-Negative")
-
-        logger.info(
-            f"Unbound Cmax: {np.round(10**-test_mfp_Mordred_liv['median pMolar unbound plasma concentration'][0] *10**6, 2)} uM"
-        )
-        logger.info(
-            f"Total Cmax: {np.round(10**-test_mfp_Mordred_liv['median pMolar total plasma concentration'][0] *10**6, 2)} uM"
-        )
+            logger.debug("The compound is predicted **_DILI-Negative_**")
 
         top = interpret[interpret["SHAP"] > 0].sort_values(by=["SHAP"], ascending=False)
-        proxy_DILI_SHAP_top = pd.merge(INFO, top[top["name"].isin(LIV_DATA)])
+        proxy_DILI_SHAP_top = pd.merge(info, top[top["name"].isin(liv_data)])
         proxy_DILI_SHAP_top["pred"] = proxy_DILI_SHAP_top["value"] > 0.50
         proxy_DILI_SHAP_top["SHAP contribution to Toxicity"] = "Positive"
         proxy_DILI_SHAP_top["smiles"] = smiles_r
 
+        top_positives = top[top["value"] == 1]
+        top_MACCS = (
+            top_positives[top_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["description"]
+            .values[0]
+        )
+        top_MACCS_value = (
+            top_positives[top_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["value"]
+            .values[0]
+        )
+        top_MACCS_shap = (
+            top_positives[top_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["SHAP"]
+            .values[0]
+        )
+        top_MACCSsubstructure = Chem.MolFromSmarts(top_MACCS)
+
         bottom = interpret[interpret["SHAP"] < 0].sort_values(
             by=["SHAP"], ascending=True
         )
-        proxy_DILI_SHAP_bottom = pd.merge(INFO, bottom[bottom["name"].isin(LIV_DATA)])
+        proxy_DILI_SHAP_bottom = pd.merge(info, bottom[bottom["name"].isin(liv_data)])
         proxy_DILI_SHAP_bottom["pred"] = proxy_DILI_SHAP_bottom["value"] > 0.50
         proxy_DILI_SHAP_bottom["SHAP contribution to Toxicity"] = "Negative"
         proxy_DILI_SHAP_bottom["smiles"] = smiles_r
+
+        bottom_positives = bottom[bottom["value"] == 1]
+        bottom_MACCS = (
+            bottom_positives[bottom_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["description"]
+            .values[0]
+        )
+        bottom_MACCS_value = (
+            bottom_positives[bottom_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["value"]
+            .values[0]
+        )
+        bottom_MACCS_shap = (
+            bottom_positives[bottom_positives.name.isin(desc.name.to_list()[-166:])]
+            .iloc[:1, :]["SHAP"]
+            .values[0]
+        )
+        bottom_MACCSsubstructure = Chem.MolFromSmarts(bottom_MACCS)
+
+        logger.debug(
+            "unbound Cmax: ",
+            np.round(
+                10
+                ** -test_mfp_Mordred_liv["median pMolar unbound plasma concentration"][
+                    0
+                ]
+                * 10**6,
+                2,
+            ),
+            "uM",
+        )
+        logger.debug(
+            "total Cmax: ",
+            np.round(
+                10
+                ** -test_mfp_Mordred_liv["median pMolar total plasma concentration"][0]
+                * 10**6,
+                2,
+            ),
+            "uM",
+        )
 
         SHAP = pd.DataFrame(
             columns=[
@@ -384,14 +562,13 @@ class DILIPRedictor:
         SHAP = pd.concat([preds_DILI, SHAP]).reset_index(drop=True)
         SHAP["smiles"] = smiles
         SHAP["smiles_r"] = smiles_r
-
         return SHAP
 
 
 def main():
     parser = argparse.ArgumentParser(
         description=BANNER + "\n\n" + ABSTRACT + "\n\n" + CITE,
-        formatter_class=RawTextHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument(
         "--smiles",
@@ -399,20 +576,30 @@ def main():
         "-smi",
         "--smi",
         "-smiles",
-	    type=str,
+        type=str,
         help="Input SMILES string to predict properties",
     )
+    parser.add_argument(
+        "-d",
+        "--debug",
+        action='store_true',
+        help="Enable debug mode"
+    )
     args = parser.parse_args(args=None if sys.argv[1:] else ["--help"])
+
+    if args.debug:
+        logger.remove()
+        logger.add(sys.stderr, level="DEBUG")
 
     dili_predictor = DILIPRedictor()
     print(BANNER)
     print(CITE)
 
     result = dili_predictor.predict(args.smiles)
-    filename = f"DILIPRedictor_{formatted_time}_{formatted_date}.csv"
-    logger.info(f"Saving Results in {filename}")
-    result.to_csv(filename, index=False)
-    
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%d-%m-%Y-%H-%M-%S")
+    result.to_csv(f"DILIPRedictor_{timestamp}.csv", index=False)
+    logger.debug(f"Results are saved in the file ./DILIPRedictor_{timestamp}.csv")
 
 if __name__ == "__main__":
     main()

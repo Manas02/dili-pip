@@ -36,16 +36,14 @@ DESCS = [
 ]
 
 
-LIV_DATA = ["2", "3", "5", "6", "7", "8", "10", "11", "14", "15", "16"]
+LIV_DATA = ["3", "5", "6", "7", "8", "11", "14", "15", "16"]
 
 SOURCE = [
-    "Liver Toxicity Knowledge Base",
     "Human hepatotoxicity",
     "Animal hepatotoxicity A",
     "Animal hepatotoxicity B",
     "Preclinical hepatotoxicity",
     "Diverse DILI A",
-    "Diverse DILI B",
     "Diverse DILI C",
     "BESP",
     "Mitotox",
@@ -54,12 +52,10 @@ SOURCE = [
 
 
 ASSAY_TYPE = [
-    "DILI",
     "Human hepatotoxicity",
     "Animal hepatotoxicity",
     "Animal hepatotoxicity",
     "Animal hepatotoxicity",
-    "Heterogenous Data ",
     "Heterogenous Data ",
     "Heterogenous Data ",
     "Mechanisms of Liver Toxicity",

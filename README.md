@@ -14,6 +14,16 @@ Select from the sidebar to predict DILI for a single molecule! For bulk jobs, or
 pip install dilipred
 ```
 
+### Build from source using `python-poetry`
+
+```sh
+git clone https://github.com/Manas02/dili-pip.git
+cd dili-pip/
+poetry install 
+poetry shell
+poetry build
+```
+
 ## Usage
 
 ### Running `DILIPredictor` as CLI
@@ -24,6 +34,7 @@ Simply run `dili` or `dili -h` or `dili --help` to get the helper.
 
 #### Inference given SMILES strings
 Output is stored in a directory with the name in the format `DILIPRedictor_dd-mm-yyyy-hh-mm-ss.csv`
+Use `-d` or `--debug` to get more info.
 
 ![](dilipred_run.png)
 
