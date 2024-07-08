@@ -41,8 +41,6 @@ pip install dilipred
 git clone https://github.com/Manas02/dili-pip.git
 cd dili-pip/
 poetry install 
-poetry shell
-poetry build
 ```
 
 ## Usage
@@ -74,8 +72,7 @@ if __name__ == '__main__':
 ## Cite
 
 If you use DILIPred in your work, please cite:
-
-> Improved Early Detection of Drug-Induced Liver Injury by Integrating Predicted in vivo and in vitro Data;
-> Srijit Seal, Dominic P. Williams, Layla Hosseini-Gerami, Ola Spjuth, Andreas Bender
-> bioRxiv 2024.01.10.575128; doi: https://doi.org/10.1101/2024.01.10.575128
-
+> Improved Detection of Drug-Induced Liver Injury by Integrating Predicted In Vivo and In Vitro Data
+> Srijit Seal, Dominic Williams, Layla Hosseini-Gerami, Manas Mahale, Anne E. Carpenter, Ola Spjuth,
+> and Andreas Bender
+> doi: https://doi.org/10.1021/acs.chemrestox.4c00015
