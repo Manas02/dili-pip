@@ -2,7 +2,28 @@
 
 DILI Predictor is an open-source app framework built specifically for human drug-induced liver injury (DILI)
 
-DILI Predictor employs eleven proxy-DILI labels from in vitro (e.g., mitochondrial toxicity, bile salt export pump inhibition) and in vivo (e.g., preclinical rat hepatotoxicity studies) datasets along with pharmacokinetic parameters, structural fingerprints and physicochemical parameters as features.
+Drug-induced liver injury (DILI) has been a significant challenge in drug discovery, often leading
+to clinical trial failures and necessitating drug withdrawals. The existing suite of in vitro
+proxy-DILI assays is generally effective at identifying compounds with hepatotoxicity. However,
+there is considerable interest in enhancing the in silico prediction of DILI because it allows for
+evaluating large sets of compounds more quickly and cost-effectively, particularly in the early
+stages of projects. In this study, we aim to study ML models for DILI prediction that first predict
+nine proxy-DILI labels from in vitro (e.g., mitochondrial toxicity, bile salt export pump
+inhibition) and in vivo (e.g., preclinical rat hepatotoxicity studies) datasets along with two
+pharmacokinetic parameters, structural fingerprints, and physicochemical parameters as features to
+predict DILI. The features include in vitro (e.g., mitochondrial toxicity, bile salt export pump
+inhibition) data, in vivo (e.g., preclinical rat hepatotoxicity studies) data, pharmacokinetic
+parameters of maximum concentration, structural fingerprints, and physicochemical parameters. We
+trained DILI-prediction models on 888 compounds from the DILIst data set and tested them on a
+held-out external test set of 223 compounds from the DILIst data set. The best model,
+DILIPredictor, attained an AUC-ROC of 0.79. This model enabled the detection of the top 25 toxic
+compounds compared to models using only structural features (2.68 LR+ score). Using feature
+interpretation from DILIPredictor, we identified the chemical substructures causing DILI and
+differentiated cases of DILI caused by compounds in animals but not in humans. For example,
+DILIPredictor correctly recognized 2-butoxyethanol as nontoxic in humans despite its hepatotoxicity
+in mice models. Overall, the DILIPredictor model improves the detection of compounds causing DILI
+with an improved differentiation between animal and human sensitivity and the potential for
+mechanism evaluation.
 
 Select from the sidebar to predict DILI for a single molecule! For bulk jobs, or local use: use code from Github page: https://github.com/srijitseal/DILI_Predictor
 
