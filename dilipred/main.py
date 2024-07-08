@@ -288,10 +288,12 @@ liv_data = LIV_DATA
 
 def predict_individual_liv_data(data_dummy, features, endpoint):  # predict animal data
     with open(
-        os.path.dirname(os.path.abspath(__file__)) + 
-        f"/models/bestlivmodel_{endpoint}_model.sav", "rb") as f:
+        os.path.dirname(os.path.abspath(__file__))
+        + f"/models/bestlivmodel_{endpoint}_model.sav",
+        "rb",
+    ) as f:
         loaded_rf = pickle.load(f)
-        
+
     X = data_dummy[features]
     X = X.values
     y_proba = loaded_rf.predict_proba(X)[:, 1]
@@ -301,8 +303,10 @@ def predict_individual_liv_data(data_dummy, features, endpoint):  # predict anim
 
 def predict_individual_cmax_data(data_dummy, features, endpoint):  # predict animal data
     with open(
-        os.path.dirname(os.path.abspath(__file__)) + 
-        f"/models/bestlivmodel_{endpoint}_model.sav", "rb") as f:
+        os.path.dirname(os.path.abspath(__file__))
+        + f"/models/bestlivmodel_{endpoint}_model.sav",
+        "rb",
+    ) as f:
         regressor = pickle.load(f)
 
     X = data_dummy[features]
@@ -316,8 +320,11 @@ def predict_individual_cmax_data(data_dummy, features, endpoint):  # predict ani
 def predict_liv_all(data):
     # Read columns needed for rat data
 
-    with open(os.path.dirname(os.path.abspath(__file__)) + 
-              f"/features/features_morgan_mordred_maccs_physc.txt", "r") as file:
+    with open(
+        os.path.dirname(os.path.abspath(__file__))
+        + f"/features/features_morgan_mordred_maccs_physc.txt",
+        "r",
+    ) as file:
         file_lines = file.read()
     features = file_lines.split("\n")
     features = features[:-1]
@@ -342,9 +349,11 @@ def predict_liv_all(data):
 def predict_DILI(data):  # log human_VDss_L_kg model
 
     # Read columns needed for rat data
-    with open (
-        os.path.dirname(os.path.abspath(__file__)) + 
-        f"/features/features_morgan_mordred_maccs_physc.txt", "r") as file:
+    with open(
+        os.path.dirname(os.path.abspath(__file__))
+        + f"/features/features_morgan_mordred_maccs_physc.txt",
+        "r",
+    ) as file:
         file_lines = file.read()
     features = file_lines.split("\n")
     features = features[:-1]
@@ -359,8 +368,8 @@ def predict_DILI(data):  # log human_VDss_L_kg model
     )
 
     with open(
-        os.path.dirname(os.path.abspath(__file__)) + 
-        "/models/final_dili_model.sav", "rb"
+        os.path.dirname(os.path.abspath(__file__)) + "/models/final_dili_model.sav",
+        "rb",
     ) as f:
         loaded_rf = pickle.load(f)
 
@@ -389,11 +398,15 @@ def predict_DILI(data):  # log human_VDss_L_kg model
 
     return (interpret, y_proba, y_pred)
 
+
 class DILIPRedictor:
     def predict(self, smiles):
-         
-        desc = pd.read_csv(os.path.dirname(os.path.abspath(__file__)) + 
-                           "/features/all_features_desc.csv", encoding="windows-1252")
+
+        desc = pd.read_csv(
+            os.path.dirname(os.path.abspath(__file__))
+            + "/features/all_features_desc.csv",
+            encoding="windows-1252",
+        )
         source = SOURCE
         assaytype = ASSAY_TYPE
 
@@ -442,9 +455,9 @@ class DILIPRedictor:
         )
 
         if y_pred[0] == 1:
-            logger.debug("The compound is predicted **_DILI-Positive_**")
+            logger.critical("The compound is predicted DILI-Positive")
         if y_pred[0] == 0:
-            logger.debug("The compound is predicted **_DILI-Negative_**")
+            logger.critical("The compound is predicted DILI-Negative")
 
         top = interpret[interpret["SHAP"] > 0].sort_values(by=["SHAP"], ascending=False)
         proxy_DILI_SHAP_top = pd.merge(info, top[top["name"].isin(liv_data)])
@@ -579,12 +592,7 @@ def main():
         type=str,
         help="Input SMILES string to predict properties",
     )
-    parser.add_argument(
-        "-d",
-        "--debug",
-        action='store_true',
-        help="Enable debug mode"
-    )
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args(args=None if sys.argv[1:] else ["--help"])
 
     if args.debug:
@@ -600,6 +608,7 @@ def main():
     timestamp = now.strftime("%d-%m-%Y-%H-%M-%S")
     result.to_csv(f"DILIPRedictor_{timestamp}.csv", index=False)
     logger.debug(f"Results are saved in the file ./DILIPRedictor_{timestamp}.csv")
+
 
 if __name__ == "__main__":
     main()
