@@ -16,7 +16,7 @@ inhibition) data, in vivo (e.g., preclinical rat hepatotoxicity studies) data, p
 parameters of maximum concentration, structural fingerprints, and physicochemical parameters. We
 trained DILI-prediction models on 888 compounds from the DILIst data set and tested them on a
 held-out external test set of 223 compounds from the DILIst data set. The best model,
-DILIPredictor, attained an AUC-ROC of 0.79. This model enabled the detection of the top 25 toxic
+DILIPredictor, attained an AUC-PR of 0.79. This model enabled the detection of the top 25 toxic
 compounds compared to models using only structural features (2.68 LR+ score). Using feature
 interpretation from DILIPredictor, we identified the chemical substructures causing DILI and
 differentiated cases of DILI caused by compounds in animals but not in humans. For example,
