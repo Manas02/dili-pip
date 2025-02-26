@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dilipred"
-version = "4.0.4"
+version = "4.0.6"
 description = "DILIPRedictor is an open-source app framework built specifically for human drug-induced liver injury"
 authors = ["Srijit Seal", "Dominic Williams", "Layla Hosseini-Gerami", "Manas Mahale", "Anne E. Carpenter", "Ola Spjuth", "Andreas Bender"]
 
@@ -10,7 +10,7 @@ readme = "README.md"
 dilipred = "dilipred.main:main"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.12"
+python = ">=3.10 <3.12"
 loguru = "^0.7.2"
 scikit-learn = "1.2.0"
 MolVS = "0.1.1"

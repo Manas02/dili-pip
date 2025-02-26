@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
+"""Entrypoint for CLI"""
 
 import argparse
 import datetime
@@ -592,6 +591,16 @@ def main():
         type=str,
         help="Input SMILES string to predict properties",
     )
+    parser.add_argument(
+        "--out",
+        "--output",
+        "-o",
+        "-out",
+        "-output",
+        type=str,
+        help="Save the output as this file name (format is csv)",
+        required=True,
+    )
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode")
     args = parser.parse_args(args=None if sys.argv[1:] else ["--help"])
 
@@ -604,10 +613,15 @@ def main():
     print(CITE)
 
     result = dili_predictor.predict(args.smiles)
-    now = datetime.datetime.now()
-    timestamp = now.strftime("%d-%m-%Y-%H-%M-%S")
-    result.to_csv(f"DILIPRedictor_{timestamp}.csv", index=False)
-    logger.debug(f"Results are saved in the file ./DILIPRedictor_{timestamp}.csv")
+
+    if args.out:
+        filename = args.out if args.out.lower().endswith(".csv") else f"{args.out}.csv"
+    else:
+        timestamp = datetime.datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+        filename = f"DILIPRedictor_{timestamp}.csv"
+
+    result.to_csv(filename, index=False)
+    logger.info(f"Results saved in {filename}")
 
 
 if __name__ == "__main__":
