@@ -16,7 +16,7 @@ from loguru import logger
 from mordred import Calculator, descriptors
 from rdkit import Chem
 from rdkit.Chem import AllChem, Descriptors, MolStandardize
-from rdkit.Chem.MolStandardize import Standardizer, rdMolStandardize
+from rdkit.Chem.MolStandardize import rdMolStandardize
 
 from dilipred.constants import (
     ABSTRACT,
@@ -37,7 +37,7 @@ logger.add(sys.stderr, level="CRITICAL")
 
 
 def standardized_smiles(smiles):
-    standardizer = Standardizer()
+    # standardizer = Standardizer() # [OLD] rdkit-pypi
 
     # Read SMILES and convert it to RDKit mol object
     mol = Chem.MolFromSmiles(smiles)
@@ -57,30 +57,14 @@ def standardized_smiles(smiles):
             mol = rdMolStandardize.Cleanup(mol)
             # if many fragments, get the "parent" (the actual mol we are interested in)
             mol = rdMolStandardize.FragmentParent(mol)
-            # try to neutralize molecule
-            uncharger = (
-                rdMolStandardize.Uncharger()
-            )  # annoying, but necessary as no convenience method exists
 
-            mol = uncharger.uncharge(mol)  # standardize molecules using MolVS and RDKit
-            mol = standardizer.charge_parent(mol)
-            mol = standardizer.isotope_parent(mol)
-            mol = standardizer.stereo_parent(mol)
+            # enumerator = rdMolStandardize.GetV1TautomerEnumerator()
+            # enumerator = rdMolStandardize.TautomerEnumerator()
+            # mol = enumerator.Canonicalize(mol)
+            mol = rdMolStandardize.ChargeParent(mol)
+            mol = rdMolStandardize.IsotopeParent(mol)
+            mol = rdMolStandardize.StereoParent(mol)
 
-            # Normalize tautomers
-            # Method 1
-            normalizer = MolStandardize.tautomer.TautomerCanonicalizer()
-            mol = normalizer.canonicalize(mol)
-
-            # Method 2
-            te = rdMolStandardize.TautomerEnumerator()  # idem
-            mol = te.Canonicalize(mol)
-
-            # Method 3
-            mol = standardizer.tautomer_parent(mol)
-
-            # Final Rules
-            mol = standardizer.standardize(mol)
             mol_standardized = mol
 
             # convert mol object back to SMILES
@@ -103,6 +87,7 @@ def standardized_smiles(smiles):
             # ... and the corresponding mol object
             # mol_standardized = mol_dict[smiles_standardized]
 
+        print(smiles_standardized)
         return smiles_standardized
 
     except:
@@ -119,6 +104,7 @@ def _protonate_smiles(smiles):
 
     if len(protonated_smiles) > 0:
         protonated_smiles = protonated_smiles[0]
+        print(protonated_smiles)
 
     return protonated_smiles
 
