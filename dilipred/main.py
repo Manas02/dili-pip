@@ -87,7 +87,6 @@ def standardized_smiles(smiles):
             # ... and the corresponding mol object
             # mol_standardized = mol_dict[smiles_standardized]
 
-        print(smiles_standardized)
         return smiles_standardized
 
     except:
@@ -104,7 +103,6 @@ def _protonate_smiles(smiles):
 
     if len(protonated_smiles) > 0:
         protonated_smiles = protonated_smiles[0]
-        print(protonated_smiles)
 
     return protonated_smiles
 
