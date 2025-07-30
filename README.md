@@ -40,7 +40,8 @@ pip install dilipred
 ```sh
 git clone https://github.com/Manas02/dili-pip.git
 cd dili-pip/
-poetry install 
+poetry build
+poetry shell # or poetry run dilipred -h
 ```
 
 ## Usage
