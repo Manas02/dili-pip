@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import shap
-from dimorphite_dl.dimorphite_dl import DimorphiteDL
+from dimorphite_dl import protonate_smiles
 from loguru import logger
 from mordred import Calculator, descriptors
 from rdkit import Chem
@@ -110,12 +110,12 @@ def standardized_smiles(smiles):
         return "Cannot_do"
 
 
-def protonate_smiles(smiles):
+def _protonate_smiles(smiles):
 
-    dimorphite = DimorphiteDL(min_ph=7.0, max_ph=7.0, pka_precision=0)
-    protonated_smiles = dimorphite.protonate(smiles)
+    protonated_smiles = protonate_smiles(smiles, ph_min=7.0, ph_max=7.0, precision=0)
 
-    # print("protonated_smiles")
+    if not protonate_smiles:
+        return "Cannot_do"
 
     if len(protonated_smiles) > 0:
         protonated_smiles = protonated_smiles[0]
@@ -430,6 +430,7 @@ class DILIPRedictor:
         smiles_r = ""
 
         smiles_r = standardized_smiles(smiles)
+        smiles_r = _protonate_smiles(smiles_r)
         test = {"smiles_r": [smiles_r]}
         test = pd.DataFrame(test)
 
@@ -508,28 +509,19 @@ class DILIPRedictor:
         )
         bottom_MACCSsubstructure = Chem.MolFromSmarts(bottom_MACCS)
 
-        logger.debug(
-            "unbound Cmax: ",
-            np.round(
-                10
-                ** -test_mfp_Mordred_liv["median pMolar unbound plasma concentration"][
-                    0
-                ]
-                * 10**6,
-                2,
-            ),
-            "uM",
+        unboundcmax_ = np.round(
+            10 ** -test_mfp_Mordred_liv["median pMolar unbound plasma concentration"][0]
+            * 10**6,
+            2,
         )
-        logger.debug(
-            "total Cmax: ",
-            np.round(
-                10
-                ** -test_mfp_Mordred_liv["median pMolar total plasma concentration"][0]
-                * 10**6,
-                2,
-            ),
-            "uM",
+        totalcmax_ = np.round(
+            10 ** -test_mfp_Mordred_liv["median pMolar total plasma concentration"][0]
+            * 10**6,
+            2,
         )
+
+        logger.critical(f"unbound Cmax: {unboundcmax_} uM")
+        logger.critical(f"total Cmax: {totalcmax_} uM")
 
         SHAP = pd.DataFrame(
             columns=[
